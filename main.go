@@ -1,7 +1,16 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"lesson14/mtBankAccount"
+)
 
 func main() {
-	fmt.Println("hello world")
+	done := make(chan struct{})
+
+	go mtBankAccount.StartConcurrentChanges(done)
+
+	<-done
+
+	fmt.Println("exit")
 }

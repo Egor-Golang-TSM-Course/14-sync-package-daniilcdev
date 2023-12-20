@@ -19,9 +19,7 @@ func StartRequestBroking(done chan<- struct{}) {
 	}
 
 	requests := make(chan string)
-	free := make(chan *Handler)
-
-	responses := make(chan string, 100)
+	responses := make(chan string, 5)
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
@@ -29,8 +27,7 @@ func StartRequestBroking(done chan<- struct{}) {
 		wg.Wait()
 	}()
 
-	go runBroker(requests, free, responses)
-
+	go runBroker(requests, responses)
 	go runEmitter(&wg, requests)
 
 	for s := range responses {
@@ -38,19 +35,24 @@ func StartRequestBroking(done chan<- struct{}) {
 		fmt.Printf("response : %s\n", s)
 	}
 
-	wg.Wait()
 	done <- struct{}{}
 }
 
-func runBroker(r chan string, c chan *Handler, resp chan<- string) {
-	for {
+func runBroker(r chan string, resp chan<- string) {
+	wg := sync.WaitGroup{}
+	c := make(chan *Handler)
+	stopped := false
+
+	for !stopped {
 		select {
 		case s, ok := <-r:
 			if !ok {
 				fmt.Printf("requests channel closed\n")
-				return
+				stopped = true
+				continue
 			}
 
+			wg.Add(1)
 			mu.Lock()
 			h := freeHandlers[0]
 			fmt.Printf("handler-%d selected to serve request\n", h.id)
@@ -58,6 +60,8 @@ func runBroker(r chan string, c chan *Handler, resp chan<- string) {
 			go h.handle(s, c, resp)
 			mu.Unlock()
 		case h := <-c:
+			wg.Done()
+
 			mu.Lock()
 			fmt.Printf("handler-%d served request, return to pool\n", h.id)
 			freeHandlers = append(freeHandlers, h)
@@ -66,6 +70,10 @@ func runBroker(r chan string, c chan *Handler, resp chan<- string) {
 			continue
 		}
 	}
+
+	defer close(c)
+	fmt.Printf("waiting for scheduled handlers to complete...\n")
+	wg.Wait()
 }
 
 func runEmitter(wg *sync.WaitGroup, r chan string) {

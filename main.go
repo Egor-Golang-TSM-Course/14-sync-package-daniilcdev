@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"lesson14/mtBankAccount"
+	mtcounter "lesson14/mtCounter"
 	mtlogger "lesson14/mtLogger"
 )
 
@@ -16,6 +17,12 @@ func main() {
 	go mtlogger.StartConcurrentLogging(done)
 
 	<-done
+
+	go mtcounter.StartConcurrentVisits(done)
+
+	<-done
+
+	close(done)
 
 	fmt.Println("exit")
 }

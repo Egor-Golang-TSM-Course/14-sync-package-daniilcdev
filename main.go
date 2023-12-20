@@ -2,23 +2,25 @@ package main
 
 import (
 	"fmt"
-	"lesson14/mtBankAccount"
-	mtcounter "lesson14/mtCounter"
-	mtlogger "lesson14/mtLogger"
+	mtbroker "lesson14/mtBroker"
 )
 
 func main() {
 	done := make(chan struct{})
 
-	go mtBankAccount.StartConcurrentChanges(done)
+	// go mtBankAccount.StartConcurrentChanges(done)
 
-	<-done
+	// <-done
 
-	go mtlogger.StartConcurrentLogging(done)
+	// go mtlogger.StartConcurrentLogging(done)
 
-	<-done
+	// <-done
 
-	go mtcounter.StartConcurrentVisits(done)
+	// go mtcounter.StartConcurrentVisits(done)
+
+	// <-done
+
+	go mtbroker.StartRequestBroking(done)
 
 	<-done
 
